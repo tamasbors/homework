@@ -224,3 +224,53 @@ We will evaluate:
 ### Use of AI
 
 The use of AI-assisted tools is permitted. However, we encourage you to complete the assignment primarily based on your own knowledge, experience and reasoning. During the interview, we will discuss your implementation choices, trade-offs and decision-making process, so it is important that you fully understand and can explain every part of your solution.
+
+---
+# Solution
+
+## Changes I have done
+
+### Application
+I implemented the `myapp.py` Flask application using AI based on the requirements from the README file.
+In Dockerfile, just the requirements are installed, and the myapp.py copied. The applciation runs on port 8080.
+
+### Helm
+I fixed the empty lines, and indentations across all the files.
+`service.yaml`: changed port to use variable
+`ingress.yaml`: fixed the serivce name, and changed the port to variable
+`deployment.yaml`: changed the containerPort, changed replicas to use the variable instead of the hard coded value
+`values.yaml`: changed the serivce port to match with the expected port in the ingress (or ingress port should be changed)
+
+### Terraform
+`variables.tf`: default values, and descriptions added, and a few other variables
+`terraform.tfvars`: created the varialbes file with values
+`providers.tf`: I added the required providers with versions. Also changed the config_path to use variable. And last but not least, the local backend is configured.
+
+### GitlabCI/Github Actions
+- for both I created local runner on my computer
+- On GitLab/GitHub I configured secrets for the action (docker credentials and `kube/config file`)
+
+In both pipelines:
+1. builds, tags, and pushes the Docker images to my docker repositoy.
+2. the deploy job is running on my local computer (self-hosted/private-runner) where using the kube/config deploys the helm chart using terraform.
+
+## Assumptions
+
+- namespace/helm release does not exists yet
+- local runner for GitLab/GitHub configured properly
+- docker registri reacable from kubernetes cluster
+- sufficient privilege on kubernetes cluster
+
+## Known Limitations
+
+- no smoke/integration test for the container
+- a bit confusing port usage
+- admin privileges in the kubeconfig file
+- terraform state is not stored (no remote state)
+
+## Production Improvements
+
+- remote state for terraform
+- use more variables
+- testig
+- destroy pipeline

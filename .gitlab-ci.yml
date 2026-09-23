@@ -2,12 +2,47 @@ stages:
   - build
   - deploy
 
+variables:
+  IMAGE_NAME: "$DOCKER_USERNAME/myapp"
+
 build:
   stage: build
+  image: docker:28.1
+  services:
+    - docker:28.1-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
   script:
-    - echo "Building the application..."
+    - echo "Logging in to Docker Hub..."
+    - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_TOKEN"
+    - echo "Building Docker image..."
+    - docker build -t "$IMAGE_NAME:${CI_COMMIT_SHA}" ./app
+    - docker tag "$IMAGE_NAME:${CI_COMMIT_SHA}" "$IMAGE_NAME:latest"
+    - echo "Pushing Docker image..."
+    - docker push "$IMAGE_NAME:${CI_COMMIT_SHA}"
+    - docker push "$IMAGE_NAME:latest"
+  only:
+    - main
 
 deploy:
   stage: deploy
+  tags:
+    - private-runner
+  image: hashicorp/terraform:1.12.4
+  needs:
+    - job: build
+      artifacts: false
+  before_script:
+    - mkdir -p "$HOME/.kube"
+    - printf '%s' "$KUBE_CONFIG" | base64 -d > "$HOME/.kube/config"
   script:
-    - echo "Deploying the application..."
+    - cd terraform
+    - terraform init
+    - terraform validate
+    - export TF_VAR_repository="$DOCKER_USERNAME/myapp"
+    - export TF_VAR_image_tag="$CI_COMMIT_SHA"
+    - terraform apply -auto-approve
+  environment:
+    name: production
+  only:
+    - main
